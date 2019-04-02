@@ -13,7 +13,7 @@ Links:
 This repo contains code and configuration for deploying a sentiment text classificatier trained using Tensorflow/Keras.  The quickstart section will get you a working version of the model locally.  The next section is about setting up infrastructure and deploying it on AWS using Terraform.
 
 Check out:
-- <src/model.py> for code to download data, train/save model, and predict
+- [model.py](src/model.py) for code to download data, train/save model, and predict
 - <src/app.py> for the falcon WSGI app that serves the model
 - <infra/> for the terraform modules (to provision AWS services)
 - <Dockerfile>
