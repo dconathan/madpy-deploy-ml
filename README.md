@@ -10,15 +10,12 @@ Links:
 
 ## Summary
 
-This repo contains code and configuration for deploying a sentiment text classificatier trained using Tensorflow/Keras.  The quickstart section will get you a working version of the model locally.  The next section is about setting up infrastructure and deploying it on AWS using Terraform.
+This repo contains code and configuration for deploying a sentiment text classifier trained using Tensorflow/Keras.  The quickstart section will get you a working version of the model locally.  The next section will detail an architecture for deploying it to the cloud, and set up infrastructure to deploy it on AWS using Terraform.
 
 Check out:
 - [model.py](src/model.py) for code to download data, train/save model, and predict
-- <src/app.py> for the falcon WSGI app that serves the model
-- <infra/> for the terraform modules (to provision AWS services)
-- <Dockerfile>
-
-
+- [app.py](src/app.py>) for the falcon WSGI app that serves the model
+- [infra/](infra) for the terraform modules (to provision AWS services)
 
 ## Setup
 
@@ -42,12 +39,12 @@ Train a model:
 python src/main.py train
 ```
 
-Predict using model:
+Predict using the model:
 ```
 python src/main.py predict this movie rocked!
 ```
 
-Run tests:
+Run tests (`pipenv sync --dev` first if you don't have pytest installed):
 ```
 pytest
 ```
@@ -62,6 +59,23 @@ Call it using `curl`:
 curl localhost:8000/predict -X POST -H "content-type: application/json" -d '{"text":"hello world"}'
 ```
 
-## Introduction 
 
-Blah blah blah
+## Architecture 
+
+### Summary
+
+ - At the core of everything is [model.py](src/model.py)
+    - It trains a model and can load it to predict
+ - A simple WSGI app wraps the model
+    - The model code, WSGI app, and environment are wrapped in a Docker image
+ - An S3 bucket provides a persistant location for the model artifact(s)
+    - This allows us to run the model anywhere as long as we have access to the bucket
+    - The model code is written to automatically download the model from S3 if not found locally
+ - The Docker image is built locally and uploaded to a private container registry
+ - An EC2 instance pulls and runs the image automatically as a systemd service
+
+ ### Key Points
+
+ - Infrastructure as code
+ - Configure using environment variables
+ - Documentation is key!
