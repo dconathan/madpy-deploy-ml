@@ -1,0 +1,25 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+ipython = "*"
+pylint = "*"
+requests = "*"
+black = "==19.3b0"
+pytest = "*"
+awslogs = "*"
+awscli = "*"
+docker = "*"
+
+[packages]
+tensorflow = "*"
+h5py = "*"
+pyyaml = "*"
+gunicorn = "*"
+falcon = "*"
+s3fs = "*"
+
+[requires]
+python_version = "3.7"
