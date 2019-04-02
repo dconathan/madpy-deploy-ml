@@ -1,6 +1,5 @@
 import falcon
 import model
-from pydantic import BaseModel
 import os
 import sys
 
@@ -47,7 +46,9 @@ class Predict:
             raise falcon.HTTPMissingParam("text")
 
         if not isinstance(text, str):
-            raise falcon.HTTPInvalidParam(f"expected a string, got a {type(text)}", "text")
+            raise falcon.HTTPInvalidParam(
+                f"expected a string, got a {type(text)}", "text"
+            )
 
         resp.media = {"score": model.predict(text)}
 
@@ -60,4 +61,3 @@ if "pytest" not in sys.modules:
     print("warming up model")
     model.predict("warm up!")
     print("model is ready")
-

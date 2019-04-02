@@ -13,4 +13,3 @@ def test_predict_api(client: falcon.testing.TestClient):
     assert response.status_code == 200
     assert isinstance(response.json["score"], float)
     assert 0 <= response.json["score"] <= 1
-
