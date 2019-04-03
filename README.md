@@ -19,6 +19,8 @@ Check out:
 
 ## Setup
 
+### Python
+
 First clone the repo:
 ```
 git clone https://github.com/dconathan/madpy-deploy-ml.git
@@ -30,6 +32,17 @@ This repo uses [pipenv](https://pipenv.readthedocs.io/en/latest/) to set up the 
 ```
 pipenv sync
 pipenv shell
+```
+
+### Terraform
+
+For the steps involving provisioning AWS resources, you need [terraform](https://www.terraform.io/) installed and appropriate AWS credientials.  See the [terraform AWS authentication](https://www.terraform.io/docs/providers/aws/index.html#authentication) section for more details (I use environment variables).
+
+At the time of giving this talk, I am using:
+
+```
+$ terraform --version
+Terraform v0.11.13
 ```
 
 ## Quickstart
@@ -59,7 +72,6 @@ Call it using `curl`:
 curl localhost:8000/predict -X POST -H "content-type: application/json" -d '{"text":"hello world"}'
 ```
 
-
 ## Architecture 
 
 ![architecture](img/arch.png)
@@ -83,3 +95,40 @@ curl localhost:8000/predict -X POST -H "content-type: application/json" -d '{"te
 
  - Infrastructure as code
  - Configure using environment variables for reusability/modularity
+
+
+## Provisioning and Deployment
+
+First check out the [.env](.env) file, specifically the first section:
+
+```
+# define your project and environment
+PROJECT_NAME=madpy-test
+PROJECT_ENV=dev
+```
+
+Names of all the resources will derive from these variables.  S3 bucket and ECR names must be unique so you will need to change the `PROJECT_NAME` to something new.  The `PROJECT_ENV` variable lets you set up two or more versions of the whole stack if that's needed.
+
+> **Note:** A typical pattern might have you develop in a `PROJECT_ENV=dev` environment, switch to `PROJECT_ENV=qa` for testing, and use `PROJECT_ENV=prod` for a critical, client-facing environment.
+
+### S3 bucket
+
+Navigate to `infra/bucket/` and check out the [main.tf](infra/bucket/main.tf).
+
+This contains JSON-like code (a "terraform module") for configuring an S3 bucket.
+
+   - The first 2 sections declare variables
+      - These are set from the environment variables in our [.env](.env) file
+   - The `provider` section sets the AWS region according to the variable
+   - The `resource` section declares that we want an S3 bucket with the given name.  
+      - Check out the [terraform `aws_s3_bucket` argument reference](https://www.terraform.io/docs/providers/aws/r/s3_bucket.html#argument-reference) for all the allowable arguments
+      - The defaults are sane enough for our use case
+
+
+
+
+
+
+
+
+
