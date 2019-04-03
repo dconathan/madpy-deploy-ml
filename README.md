@@ -10,11 +10,11 @@ Links:
 
 ## Summary
 
-This repo contains code and configuration for deploying a sentiment text classifier trained using Tensorflow/Keras.  The quickstart section will get you a working version of the model locally.  The next section will detail an architecture for deploying it to the cloud, and set up infrastructure to deploy it on AWS using Terraform.
+This repo contains code and configuration for deploying a sentiment text classifier trained using Tensorflow/Keras.  The quickstart section will get you a working version of the model locally.  The next section will detail an architecture for deploying it to the cloud, followed by a tutorial on provisioning and deploying to AWS using Terraform.
 
 Check out:
 - [model.py](src/model.py) for code to download data, train/save model, and predict
-- [app.py](src/app.py>) for the falcon WSGI app that serves the model
+- [app.py](src/app.py) for the falcon WSGI app that serves the model
 - [infra/](infra) for the terraform modules (to provision AWS services)
 
 ## Setup
@@ -62,20 +62,24 @@ curl localhost:8000/predict -X POST -H "content-type: application/json" -d '{"te
 
 ## Architecture 
 
+![architecture](img/arch.png)
+
 ### Summary
 
  - At the core of everything is [model.py](src/model.py)
-    - It trains a model and can load it to predict
- - A simple WSGI app wraps the model
-    - The model code, WSGI app, and environment are wrapped in a Docker image
- - An S3 bucket provides a persistant location for the model artifact(s)
-    - This allows us to run the model anywhere as long as we have access to the bucket
-    - The model code is written to automatically download the model from S3 if not found locally
- - The Docker image is built locally and uploaded to a private container registry
- - An EC2 instance pulls and runs the image automatically as a systemd service
+    - It trains, saves, and uploads the model
+    - It has a `predict` function that applies the model
+ - A simple WSGI app serves the model
+ - The model code, WSGI app, and environment are packaged into a Docker image
+ - AWS infrastructure provisioned using Terraform
+   - An **S3 bucket** provides a persistant location for the model artifact(s)
+      - This allows us to run the model anywhere as long as we have access to the bucket
+      - The model code is written to automatically download the model from S3 if not found locally
+   - A **container registry** stores/serves the docker images
+      - The Docker image is built locally and uploaded to the registry
+   - An **EC2 server** instance pulls and runs the image automatically as a systemd service
 
  ### Key Points
 
  - Infrastructure as code
- - Configure using environment variables
- - Documentation is key!
+ - Configure using environment variables for reusability/modularity
