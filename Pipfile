@@ -9,12 +9,10 @@ pylint = "*"
 requests = "*"
 black = "==19.3b0"
 pytest = "*"
-awslogs = "*"
 awscli = "*"
-docker = "*"
 
 [packages]
-tensorflow = "*"
+tensorflow = "<2"
 h5py = "*"
 pyyaml = "*"
 gunicorn = "*"

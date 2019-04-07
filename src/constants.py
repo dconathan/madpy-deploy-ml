@@ -7,6 +7,7 @@ DATA_DIR = os.path.join(PROJECT_DIR, "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 DATA_JSON = os.path.join(DATA_DIR, "rt-polarity.json")
+DATA_URL = "http://www.cs.cornell.edu/people/pabo/movie-review-data/rt-polaritydata.tar.gz"
 
 S3_BUCKET = os.environ.get("PROJECT_BUCKET")
 if S3_BUCKET is None:

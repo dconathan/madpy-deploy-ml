@@ -4,6 +4,8 @@ yum install docker -y
 usermod -a -G docker ec2-user
 systemctl enable docker
 systemctl start docker
+$(aws ecr get-login --region ${region} --no-include-email)
+docker pull ${repo_url}
 cat > /etc/systemd/system/my_app.service << EOF
 [Unit]
 Description=My Docker App

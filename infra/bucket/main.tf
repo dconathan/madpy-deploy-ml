@@ -1,15 +1,6 @@
 variable "bucket_name" {
   type        = "string"
-  description = "The S3 bucket where models are stored"
-}
-
-variable "aws_region" {
-  type        = "string"
-  description = "The AWS region"
-}
-
-provider "aws" {
-  region = "${var.aws_region}"
+  description = "The name of the S3 bucket where models are stored"
 }
 
 resource "aws_s3_bucket" "this" {

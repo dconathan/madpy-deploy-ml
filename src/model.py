@@ -10,6 +10,10 @@ import functools
 import logging
 import s3fs
 
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.DEBUG)
+
 
 import constants
 
@@ -23,14 +27,16 @@ def get_data() -> Tuple[List[str], List[int]]:
 
     if os.path.exists(constants.DATA_JSON):
 
+        logger.debug(f"loading training data from {constants.DATA_JSON}")
+
         with open(constants.DATA_JSON) as f:
             return json.load(f)
 
     else:
 
-        DATA_URL = "http://www.cs.cornell.edu/people/pabo/movie-review-data/rt-polaritydata.tar.gz"
+        logger.debug(f"downloading training data from {constants.DATA_URL}")
 
-        filename = tf.keras.utils.get_file("rt-polaritydata.tar.gz", DATA_URL)
+        filename = tf.keras.utils.get_file("rt-polaritydata.tar.gz", constants.DATA_URL)
 
         texts = []
         labels = []
@@ -58,75 +64,80 @@ def train():
     """
     Trains and saves the model (hdf5 file) and tokenizer (pickle file)
     """
+    logger.info("training...")
 
     texts, labels = get_data()
 
+    logger.debug("fitting tokenizer")
     tokenizer = tf.keras.preprocessing.text.Tokenizer()
     tokenizer.fit_on_texts(texts)
 
+    logger.debug(f"saving tokenizer to {constants.TOKENIZER_PICKLE}")
     with open(constants.TOKENIZER_PICKLE, "wb") as f:
         pickle.dump(tokenizer, f)
 
+    logger.debug("preprocessing data")
     X = tokenizer.texts_to_sequences(texts)
     X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=16)
     y = tf.keras.utils.to_categorical(labels)
 
+    logger.debug("building model")
     i = tf.keras.layers.Input(shape=(None,))
     embeddings = tf.keras.layers.Embedding(len(tokenizer.word_counts) + 1, 16)(i)
     lstm = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(8))(embeddings)
     output = tf.keras.layers.Dense(2, activation="softmax")(lstm)
-
     model = tf.keras.Model(inputs=i, outputs=output)
-
     model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["acc"])
 
+    logger.debug("fitting model")
     model.fit(X, y, validation_split=0.1, epochs=10, batch_size=1024)
 
+    logger.debug(f"saving model to {constants.MODEL_FILE}")
     model.save(constants.MODEL_FILE)
+    logger.info("done training")
 
 
 def upload_tokenizer():
     """
     Uploads the tokenizer pickle file to the project s3 bucket
     """
+    logger.info(f"uploading tokenizer from {constants.TOKENIZER_PICKLE} to {constants.TOKENIZER_S3_PICKLE}")
     s3 = s3fs.S3FileSystem()
+
     if not s3.exists(constants.S3_BUCKET):
-        raise FileNotFoundError(f"s3 bucket {constants.S3_BUCKET} does not exist")
-    print("uploading tokenizer...")
+        logger.error(f"s3 bucket {constants.S3_BUCKET} does not exist")
+
     s3.put(constants.TOKENIZER_PICKLE, constants.TOKENIZER_S3_PICKLE)
-    print("done")
+    logger.info("done uploading tokenizer")
 
 
 def download_model():
     """
     Downloads the model hdf5 file from project s3 bucket to local data folder
     """
+    logger.info(f"downloading model from {constants.MODEL_S3_FILE} {constants.MODEL_FILE}")
     s3 = s3fs.S3FileSystem()
     if not s3.exists(constants.MODEL_S3_FILE):
         if not s3.exists(constants.S3_BUCKET):
-            raise FileNotFoundError(f"s3 bucket {constants.S3_BUCKET} does not exist")
-        raise FileExistsError(
-            f"Could not find {constants.MODEL_S3_FILE}.  Need to upload?"
-        )
-    print("downloading model...")
+            logger.error(f"s3 bucket {constants.S3_BUCKET} does not exist")
+        else:
+            logger.error(f"Could not find {constants.MODEL_S3_FILE}.  Need to upload?")
     s3.get(constants.MODEL_S3_FILE, constants.MODEL_FILE)
-    print("done")
+    logger.info("done downloading model")
 
 
 def upload_model():
     """
     Uploads model hdf5 file from local data folder to project s3 bucket
     """
+    logger.info(f"uploading model from {constants.MODEL_FILE} to {constants.MODEL_S3_FILE}")
     s3 = s3fs.S3FileSystem()
     if not os.path.exists(constants.MODEL_FILE):
-        raise FileNotFoundError(
-            f"Could not find {constants.MODEL_FILE}.  Need to train?"
-        )
+        logger.error(f"Could not find {constants.MODEL_FILE}.  Need to train?")
     if not s3.exists(constants.S3_BUCKET):
-        raise FileNotFoundError(f"s3 bucket {constants.S3_BUCKET} does not exist")
-    print("uploading model")
+        logger.error(f"s3 bucket {constants.S3_BUCKET} does not exist")
     s3.put(constants.MODEL_FILE, constants.MODEL_S3_FILE)
-    print("done")
+    logger.info("done uploading model")
 
 
 @cache
@@ -136,10 +147,12 @@ def get_model() -> tf.keras.Model:
 
     Result is cached
     """
-    print("getting model")
+    logger.info("getting and caching model")
     if not os.path.exists(constants.MODEL_FILE):
         download_model()
-    return tf.keras.models.load_model(constants.MODEL_FILE)
+    model = tf.keras.models.load_model(constants.MODEL_FILE)
+    logger.info("got model")
+    return model
 
 
 @cache
@@ -149,30 +162,32 @@ def get_tokenizer() -> tf.keras.preprocessing.text.Tokenizer:
 
     Result is cached
     """
+    logger.info("getting and caching tokenizer")
     if os.path.exists(constants.TOKENIZER_PICKLE):
         with open(constants.TOKENIZER_PICKLE, "rb") as f:
             return pickle.load(f)
     s3 = s3fs.S3FileSystem()
     if not s3.exists(constants.TOKENIZER_S3_PICKLE):
         if not s3.exists(constants.S3_BUCKET):
-            raise FileNotFoundError(f"s3 bucket {constants.S3_BUCKET} does not exist")
-        raise FileNotFoundError(
-            f"Could not find {constants.TOKENIZER_S3_PICKLE}. Need to upload?"
-        )
-    print("downloading tokenizer")
+            logging.error(f"s3 bucket {constants.S3_BUCKET} does not exist")
+        else:
+            logging.error(f"Could not find {constants.TOKENIZER_S3_PICKLE}. Need to upload?")
     with s3.open(constants.TOKENIZER_S3_PICKLE, "rb") as f:
-        return pickle.load(f)
+        tokenizer = pickle.load(f)
+    logger.info("got tokenizer")
+    return tokenizer
+
 
 
 def predict(text: str) -> float:
     """
-    Implements the full text to score pipeline, downloading files from project s3 bucket if necessary.
-
+    Implements the full text to score pipeline, downloading files from project s3 bucket if necessary. 
     This *should* either return the score or raise an error about a missing piece along the way.
 
     Model/tokenizer is cached in memory so subsequent calls will be faster than the first
     """
-    print("predicting")
+    logger.debug(f"predicting on {len(text)} chars, {len(text.split())} tokens")
+    t0 = time.time()
 
     model = get_model()
     tokenizer = get_tokenizer()
@@ -183,6 +198,6 @@ def predict(text: str) -> float:
     y_hat = model.predict(X)
     score = float(y_hat[0][1])
 
-    print("done")
+    logger.debug(f"predicting is done, took {time.time() - t0}s")
 
     return score

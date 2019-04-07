@@ -1,13 +1,25 @@
-variable "aws_region" {
-  type = "string"
-}
-
 variable "bucket_name" {
   type = "string"
 }
 
-provider "aws" {
-  region = "${var.aws_region}"
+variable "repo_name" {
+  type        = "string"
+  description = "The name of the ECR repository"
+}
+
+variable "instance_type" {
+  type        = "string"
+  description = "The type of EC2 instance to create"
+}
+
+data "aws_region" "current" {}
+
+data "aws_ecr_repository" "this" {
+  name = "${var.repo_name}"
+}
+
+data "aws_s3_bucket" "this" {
+  bucket = "${var.bucket_name}"
 }
 
 data "aws_vpc" "default" {
@@ -40,70 +52,120 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
-module "container_registry" {
-  source = "../container_registry"
+data "aws_iam_policy_document" "role_policy" {
+  statement = {
+    actions = [
+      "sts:AssumeRole",
+    ]
+
+    principals = {
+      type        = "Service"
+      identifiers = ["ec2.amazonaws.com"]
+    }
+  }
 }
 
 resource "aws_iam_role" "this" {
-  assume_role_policy = <<EOF
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "VisualEditor0",
-            "Effect": "Allow",
-            "Action": [
-                "s3:*",
-                "ecr:*",
-            ],
-            "Resource": [
-                "arn:aws:s3:::${var.bucket_name}",
-                "arn:aws:s3:::${var.bucket_name}/*",
-                "arn:aws:ecr:*:*:repository/${module.container_registry.repo_url}"
-            ]
-        }
-    ]
+  assume_role_policy = "${data.aws_iam_policy_document.role_policy.json}"
 }
-  EOF
+
+data "aws_iam_policy_document" "read_s3_ecr" {
+  statement = {
+    actions = [
+      "s3:ListAllMyBuckets",
+    ]
+
+    resources = [
+      "*",
+    ]
+  }
+
+  statement = {
+    actions = [
+      "s3:ListBucket",
+      "s3:GetObject",
+    ]
+
+    resources = [
+      "${data.aws_s3_bucket.this.arn}",
+      "${data.aws_s3_bucket.this.arn}/*",
+    ]
+  }
+
+  statement = {
+    actions = [
+      "ecr:GetAuthorizationToken",
+    ]
+
+    resources = [
+      "*",
+    ]
+  }
+
+  statement = {
+    actions = [
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:GetRepositoryPolicy",
+      "ecr:DescribeRepositories",
+      "ecr:ListImages",
+      "ecr:DescribeImages",
+      "ecr:BatchGetImage",
+    ]
+
+    resources = [
+      "${data.aws_ecr_repository.this.arn}",
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "this" {
+  role   = "${aws_iam_role.this.id}"
+  policy = "${data.aws_iam_policy_document.read_s3_ecr.json}"
 }
 
 resource "aws_iam_instance_profile" "this" {
   role = "${aws_iam_role.this.name}"
 }
 
-module "security_group" {
-  source  = "terraform-aws-modules/security-group/aws"
-  version = "2.7.0"
+resource "aws_security_group" "this" {
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-  name        = "example"
-  description = "Security group for example usage with EC2 instance"
-  vpc_id      = "${data.aws_vpc.default.id}"
-
-  ingress_cidr_blocks = ["0.0.0.0/0"]
-  ingress_rules       = ["http-80-tcp"]
-  egress_rules        = ["all-all"]
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
 resource "aws_eip" "this" {
   vpc      = true
-  instance = "${aws_instance.app-server.id}"
+  instance = "${aws_instance.this.id}"
 }
 
 data "template_file" "this" {
   template = "${file("${path.module}/on_create.tpl")}"
+
   vars = {
-    repo_url = "${module.container_registry.repo_url}"
+    repo_url = "${data.aws_ecr_repository.this.repository_url}"
+    region   = "${data.aws_region.current.name}"
   }
 }
 
-resource "aws_instance" "app-server" {
+resource "aws_instance" "this" {
   ami                         = "${data.aws_ami.amazon_linux.id}"
-  instance_type               = "t2.medium"
+  instance_type               = "${var.instance_type}"
   subnet_id                   = "${element(data.aws_subnet_ids.all.ids, 0)}"
-  vpc_security_group_ids      = ["${module.security_group.this_security_group_id}"]
+  vpc_security_group_ids      = ["${aws_security_group.this.id}"]
   associate_public_ip_address = true
   iam_instance_profile        = "${aws_iam_instance_profile.this.name}"
-  user_data                   = "${data.template_file.this}"
+  user_data                   = "${data.template_file.this.rendered}"
 
   root_block_device = [{
     volume_type = "gp2"
