@@ -19,7 +19,7 @@ Key files/modules:
 
 ## Setup and Environment
 
-This tutorial assumes you have [Docker](https://docs.docker.com/) installed and running.  One section uses [docker-compose](https://docs.docker.com/compose/overview/) but gives the `docker`-only equivalent commands.
+This tutorial assumes you have [Docker](https://docs.docker.com/) installed and running.
 
 ### Python
 
@@ -88,7 +88,7 @@ Before you start, one question you need to ask is what kind of use case are you 
    - What requests/second is expected or necessary?
    - What is the budget?
 
-For example, the type of deployment is going to be significantly different for a Netflix-style recommender system (where you can process all your user data offline) vs. a chatbot intent predictor (where near-instantaneous results is crucial for user experience).
+For example, the type of deployment is going to be significantly different for a Netflix-style recommender system (where you can process all your user data offline) vs. a chatbot intent predictor (where near-instantaneous results is crucial for user experience).  You may also want to consider using a *serverless* architecture, which offers different tradeoffs and advantages.
 
 Here we implement a low-volume but high-frequency/low-latency service.  Our target will be in the neighborhood of 10-100 requests/second with the opportunity to scale out if we want to support more.
 
@@ -128,6 +128,8 @@ PROJECT_NAME=madpy-test
 PROJECT_ENV=dev
 ```
 
+> **Note:** Make sure you `exit` and `pipenv shell` after you've changed the `.env` file to reflect any changes you've made
+
 Names of all the resources will derive from these variables.  S3 bucket and ECR names must be unique so you will need to change the `PROJECT_NAME` to something new.  The `PROJECT_ENV` variable lets you set up two or more versions of the whole stack if that's needed.
 
 > **Note:** A typical pattern might have you develop in a `PROJECT_ENV=dev` environment, switch to `PROJECT_ENV=qa` for testing, and use `PROJECT_ENV=prod` for a critical, client-facing environment.
@@ -137,8 +139,6 @@ Names of all the resources will derive from these variables.  S3 bucket and ECR 
 First we need to set up the remote storage for our model artifacts.
 
 Navigate to `infra/bucket/` and look at the [main.tf](infra/bucket/main.tf).
-
-> **Note:** Typically your whole stack might all be under one `main.tf` which imports other Terraforum modules.  I've broken it up here for the sake of this tutorial.
 
 This contains JSON-like code (a "terraform module") for configuring an S3 bucket.
 
@@ -189,19 +189,13 @@ Now that we've created the container registry/repository, we can build and uploa
 
 ```
 $(aws ecr get-login --no-include-email)
-docker-compose build
-docker-compose push
+docker build . -t $PROJECT_IMAGE --build-arg PROJECT_BUCKET=$PROJECT_BUCKET
+docker push $PROJECT_IMAGE
 ```
 
  - The first command calls `docker login` with the appropriate AWS credentials so you have permission to push to your private image repository
  - The second command builds the Docker image
  - The third command uploads the Docker image
-
-> **Note:** The use of `docker-compose` is just to save some keystrokes.  To run the equivalent using just `docker`:
-> ``` 
-> docker build . -t $PROJECT_IMAGE --build-arg PROJECT_BUCKET=$PROJECT_BUCKET
-> docker push $PROJECT_IMAGE
-> ```
 
 ### Server
 
@@ -268,10 +262,27 @@ Hopefully in a few minutes, you see the `OK` response.
 
 ## Next steps
 
-Serverless?
+### Model and app updates and versioning
 
-Updates/versioning
+At some point, you will want to be able to update your app (to change the API) or update your model (retrained using new data perhaps).
 
-Automation
+As written, you would need to terminate/recreate the instance to update the app (after pushing a new Docker image), or restart the instance to update the model (after uploading a new model to the S3 bucket).
 
-Scaling
+#### App updates
+
+We could change the `ExecStart` in the [on_create.tpl](infra/server/on_create.tpl) to always pull the latest version of the image when starting the service.  This way we'd only need to restart the instance to get the latest version app.
+
+#### Model version
+
+We could modify the `/predict` endpoint and the `predict()` and `get_model()` functions to accept a `version` argument in order to call a specific model.  We could then store several different versions of the model in our S3 bucket.
+
+### Automation
+
+Every step of this tutorial could be automated using an automation tool like [Jenkins](https://jenkins.io/).  For example, you could set up a webhook that starts a job to automatically rebuild and push a new Docker image when you push to your master branch.
+
+
+### Scaling
+
+At some point we will need to scale our app.  With the architecture we have, we could set up an [nginx](https://www.nginx.com/) container as a load balancer in front of several clones of our app container.
+
+At some point you should consider using a managed container cluster service like AWS' Elastic Container Service (ECS) or Elastic Kubernetes Service (EKS).  These services have a little bit more overhead to set up, but can simplify the management of your infrastructure and make scaling trivial.
