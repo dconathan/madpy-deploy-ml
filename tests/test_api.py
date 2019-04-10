@@ -1,3 +1,6 @@
+import warnings
+warnings.simplefilter("ignore", category=DeprecationWarning)
+
 import falcon.testing
 import pytest
 from app import api
@@ -5,6 +8,7 @@ from app import api
 
 @pytest.fixture
 def client():
+    warnings.simplefilter("ignore", category=DeprecationWarning)
     return falcon.testing.TestClient(api)
 
 
