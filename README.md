@@ -40,6 +40,8 @@ pipenv shell
 
 For the steps involving provisioning AWS resources, you need [Terraform](https://www.terraform.io/) installed and appropriate AWS credientials.  Check out their [installation guide](https://learn.hashicorp.com/terraform/getting-started/install) and the [Terraform AWS authentication](https://www.terraform.io/docs/providers/aws/index.html#authentication) section for more details (I use environment variables).
 
+> **Please note: DO NOT put your AWS credentials in the `.env` file in this folder.  The `.env` is being tracked by git and you may accidentally expose your credentials to the public. See [this paper](https://www.ndss-symposium.org/ndss-paper/how-bad-can-it-git-characterizing-secret-leakage-in-public-github-repositories/) about this very topic!**
+
 At the time of giving this talk, I am using:
 
 ```
