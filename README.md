@@ -166,26 +166,24 @@ After running, you'll see a `terraform.tfstate`, which is a JSON file with metad
 
 You should have your S3 bucket now.  If you have the [AWS CLI](https://aws.amazon.com/cli/) installed, you can look at the output of `aws s3 ls` to see if your bucket shows up.
 
-You should be able to run the `python main/src.py upload` command to upload the model from the [quickstart](#quickstart).
+You should be able to run the `python main/src.py upload` command to upload the model we trained in the [quickstart](#quickstart).
 
 
 ### Container registry
 
-We are going to deploy our model using a Docker container, so we need a repository to store the image.  You could use [Docker hub](https://hub.docker.com/), especially if you don't care if your model is publicly available.
+We are going to deploy our model using a Docker container, so we need a repository to store the image.  We're going to set up an [Elastic Container Registry](https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html), Amazon's service for image repositories.
 
-We want to keep our model private and we want to control the critical infrastructure needed for our model, so we're going to set up an [Elastic Container Registry](https://docs.aws.amazon.com/AmazonECR/latest/userguide/what-is-ecr.html), Amazon's service for image repositories.
+Navigate to the `infra/container_registry` folder.  The [main.tf](infra/container_registry/main.tf) file is nearly the same as the previous one (again, the defaults are good enough for our use case), but this one has an `output` section.  Terraform lets you declare attributes of your resources as outputs in case you want to use them in external applications.
 
-Navigate to the `infra/container_registry` folder.  The `main.tf` file is nearly the same as the previous one (again, the defaults are good enough for our use case), but this one has a `output` section, which specifies some parameter we care about seeing.  Here we care about the `repository_url` property of the repository we are creating, so we can upload our Docker image to it.
+Here we care about the `repository_url` property of the repository we are creating, so we can upload our Docker image to it.  The value will be printed to the terminal when you `terraform apply`.  You can also run `terraform output` or `terraform output repo_url` anytime to get its value, or even `terraform output -json` to get outputs as JSON (which may be useful in automation).
 
-The `output` values will be printed to the terminal when you `terraform apply`.  You can also run `terraform output` to get their values, or even `terraform.output -json` to get outputs as JSON (which is useful in automation).
-
-Apply the same `init`, `plan`, `apply` sequence in this directory to create your ECR.  We'll need the URL it generates to upload our Docker image.  Export it to the environment variable `PROJECT_IMAGE`:
+Apply the same `init`, `plan`, `apply` sequence in this directory to create your ECR repository.  We'll need the URL it generates to upload our Docker image.  Export it to the environment variable `PROJECT_IMAGE`:
 
 ```
 export PROJECT_IMAGE=$(terraform output repo_url)
 ```
 
-Now that we've created the container registry/repository, we can build and upload our Docker image.  Navigate back to the top-level `madpy-deploy-ml/` directory and run:
+Now that we've created the image repository, we can build and upload our Docker image.  Navigate back to the top-level `madpy-deploy-ml/` directory and run:
 
 ```
 $(aws ecr get-login --no-include-email)
@@ -195,13 +193,15 @@ docker push $PROJECT_IMAGE
 
  - The first command calls `docker login` with the appropriate AWS credentials so you have permission to push to your private image repository
  - The second command builds the Docker image
- - The third command uploads the Docker image
+   - We are tagging it with the URL of the repository we just created
+   - We pass the `PROJECT_BUCKET` environment variable to the image at build time using Docker build args
+ - The third command uploads the Docker image to the repo we just created
 
 ### Server
 
 Finally we can set up the server that will run our application.
 
-Go to the `infra/server` folder.  The `main.tf` here is more complicated because there are a lot of moving parts for setting up a server: you need to specify a VPC, security group (firewall exceptions), and giving the server appropriate access to the container registry and bucket we set up in the previous steps.
+Go to the `infra/server` folder.  The `main.tf` here is more complicated because there are a lot of moving parts for setting up a server: you need to specify a VPC, security group (firewall exceptions), and give the server appropriate access to the image repository and bucket we set up in the previous steps.
 
 If you're curious about finding more about what each section does and how it's configured, the [Terraform documentation](https://www.terraform.io/docs/providers/aws/index.html) is quite good.
 
