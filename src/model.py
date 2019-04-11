@@ -1,7 +1,6 @@
 from typing import List, Tuple
 import tarfile
 import time
-import gzip
 import tensorflow as tf
 import os
 import json
@@ -65,19 +64,19 @@ def train():
 
     logger.debug("preprocessing data")
     X = tokenizer.texts_to_sequences(texts)
-    X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=8)
+    X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=16)
     y = tf.keras.utils.to_categorical(labels)
 
     logger.debug("building model")
     i = tf.keras.layers.Input(shape=(None,))
-    embeddings = tf.keras.layers.Embedding(len(tokenizer.word_counts) + 1, 32)(i)
-    lstm = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(16))(embeddings)
+    embeddings = tf.keras.layers.Embedding(len(tokenizer.word_counts) + 1, 8)(i)
+    lstm = tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(8))(embeddings)
     output = tf.keras.layers.Dense(2, activation="softmax")(lstm)
     model = tf.keras.Model(inputs=i, outputs=output)
     model.compile(loss="binary_crossentropy", optimizer="adam", metrics=["acc"])
 
     logger.debug("fitting model")
-    model.fit(X, y, validation_split=0.1, epochs=5, batch_size=512)
+    model.fit(X, y, validation_split=0.1, epochs=10, batch_size=512)
 
     logger.debug(f"saving model to {constants.MODEL_FILE}")
     model.save(constants.MODEL_FILE)
