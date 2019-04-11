@@ -95,7 +95,9 @@ For example, the type of deployment is going to be significantly different for a
 Here we implement a low-volume but high-frequency/low-latency service.  Our target will be in the neighborhood of 10-100 requests/second with the opportunity to scale out if we want to support more.
 
 ### This Architecture
-
+#### Model
+![model](img/model.png)
+#### Infrastructure
 ![architecture](img/arch.png)
 
 #### Summary
@@ -104,15 +106,15 @@ Here we implement a low-volume but high-frequency/low-latency service.  Our targ
     - It trains, saves, and uploads the model
     - It has a `predict` function that applies the model
          - It takes a string as an argument and returns a float
- - A simple WSGI app serves the model
- - The model code, WSGI app, and environment are packaged into a Docker image
+ - A simple WSGI [app](src/app.py) serves the model
+ - The model code, WSGI app, and environment are packaged into a [Docker image](Dockerfile)
  - AWS infrastructure provisioned using Terraform
-   - An **S3 bucket** provides a persistant location for the model artifact(s)
+   - An [S3 bucket](infra/bucket) provides a persistant location for the model artifact(s)
       - This allows us to run the model anywhere as long as we have access to the bucket
       - The model code is written to automatically download the model from S3 if not found locally
-   - A **container registry** stores/serves the docker images
+   - A [container registry](infra/container_registry) stores/serves the docker images
       - The Docker image is built locally and uploaded to the registry
-   - An **EC2 server** instance pulls and runs the image automatically as a systemd service
+   - An [EC2 server](infra/server) instance pulls and runs the image automatically as a systemd service
 
 #### Key Points
 
