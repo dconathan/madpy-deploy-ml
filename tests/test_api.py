@@ -1,4 +1,5 @@
 import warnings
+
 warnings.simplefilter("ignore", category=DeprecationWarning)
 
 import falcon.testing

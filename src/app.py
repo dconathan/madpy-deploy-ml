@@ -2,6 +2,10 @@ import falcon
 import model
 import os
 import sys
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 api = falcon.API()
@@ -47,7 +51,7 @@ class Predict:
 
         if not isinstance(text, str):
             raise falcon.HTTPInvalidParam(
-                f"expected a string, got a {type(text)}", "text"
+                f"expected a string, got a {type(text).__name__}", "text"
             )
 
         resp.media = {"score": model.predict(text)}
@@ -58,6 +62,6 @@ api.add_route("/", Health())
 
 
 if "pytest" not in sys.modules:
-    print("warming up model")
+    logger.info("warming up model")
     model.predict("warm up!")
-    print("model is ready")
+    logger.info("model is ready")

@@ -62,7 +62,7 @@ python src/main.py train
 
 Predict using the model:
 ```
-python src/main.py predict this movie rocked!
+python src/main.py predict have a nice day!
 ```
 
 Run tests (`pipenv sync --dev` first if you don't have pytest installed):

@@ -1,4 +1,5 @@
 import warnings
+
 warnings.simplefilter("ignore", category=DeprecationWarning)
 
 import model
@@ -22,7 +23,9 @@ def test_get_data():
 
 def test_tokenizer():
     if not os.path.exists(constants.TOKENIZER_PICKLE):
-        warnings.warn(f"{constants.TOKENIZER_PICKLE} not found, skipping test_tokenizer()")
+        warnings.warn(
+            f"{constants.TOKENIZER_PICKLE} not found, skipping test_tokenizer()"
+        )
         return
 
     t = model.get_tokenizer()

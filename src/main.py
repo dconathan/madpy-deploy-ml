@@ -10,9 +10,8 @@ args = parser.parse_args()
 if args.command == "predict":
     text = " ".join(args.text)
     score = model.predict(text)
-    print(
-        f"score is: {score:0.2f} ({'positive' if score > .5 else 'negative'} sentiment)"
-    )
+    desc = "positive" if score > 0.5 else "negative"
+    print(f"score is: {score:0.2f} ({desc} sentiment)")
 
 
 elif args.command == "train":
