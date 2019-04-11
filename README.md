@@ -280,9 +280,17 @@ We could change the `ExecStart` in the [on_create.tpl](infra/server/on_create.tp
 
 We could modify the `/predict` endpoint and the `predict()` and `get_model()` functions to accept a `version` argument in order to call a specific model.  We could then store several different versions of the model in our S3 bucket.
 
+#### A model registry
+
+Once we have a few models with different versions, it might be good idea to main some kind of model registry that keeps tracks of what models/versions are available, how to call them, and what is their performance like.
+
 ### Automation
 
-Every step of this tutorial could be automated using an automation tool like [Jenkins](https://jenkins.io/).  For example, you could set up a webhook that starts a job to automatically rebuild and push a new Docker image when you push to your master branch.
+Every step of this tutorial could be automated using an automation tool like [Jenkins](https://jenkins.io/).  For example, you could set up a webhook that starts a job to automatically run tests and rebuild/push a new Docker image when you push to your master branch.
+
+#### Automatic testing
+
+Once automation is involved, you probably want to add some more qualitative tests to your deployment pipeline.  You want to have some test to ensure your prediction accuracy is not dropping below some threshold, or at least make sure your model is giving sane outputs for a certain set of inputs!
 
 
 ### Scaling
