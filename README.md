@@ -136,7 +136,7 @@ PROJECT_ENV=dev
 
 Names of all the resources will derive from these variables.  S3 bucket and ECR names must be unique so you will need to change the `PROJECT_NAME` to something new.  The `PROJECT_ENV` variable lets you set up two or more versions of the whole stack if that's needed.
 
-> **Note:** A typical pattern might have you develop in a `PROJECT_ENV=dev` environment, switch to `PROJECT_ENV=qa` for testing, and use `PROJECT_ENV=prod` for a critical, client-facing environment.
+> **Note:** A typical pattern might have you develop in a `PROJECT_ENV=dev` environment, switch to `PROJECT_ENV=qa` for testing, and use `PROJECT_ENV=prod` for a critical, client-facing environment.  Be sure to take advantage of Terraform [workspaces](https://www.terraform.io/docs/state/workspaces.html) for managing multiple states simultaneously.
 
 ### S3 bucket
 
@@ -205,7 +205,7 @@ docker push $PROJECT_IMAGE
 
 Finally we can set up the server that will run our application.
 
-Go to the `infra/server` folder.  The `main.tf` here is more complicated because there are a lot of moving parts for setting up a server: you need to specify a VPC, security group (firewall exceptions), and give the server appropriate access to the image repository and bucket we set up in the previous steps.
+Go to the `infra/server` folder.  The [main.tf](infra/server/main.tf) here is more complicated because there are a lot of moving parts for setting up a server: you need to specify a VPC, security group (firewall exceptions), and give the server appropriate access to the image repository and bucket we set up in the previous steps.
 
 If you're curious about finding more about what each section does and how it's configured, the [Terraform documentation](https://www.terraform.io/docs/providers/aws/index.html) is quite good.
 
@@ -217,7 +217,7 @@ AWS/Terraform lets you provide a `user_data` argument to creating an instance wh
 
 Terraform reads the script from the [on_create.tpl](infra/server/on_create.tpl) file, which is a [Terraform `template_file`](https://www.terraform.io/docs/providers/template/d/file.html).
 
-It installs and sets up Docker, pulls our image, and starts a [systemd](https://en.wikipedia.org/wiki/Systemd) service that runs the Docker container.  Using a `template_file` lets us pass Terraform variables like the AWS region and repository url from the prevoius step.
+It installs and sets up Docker, pulls our image, and starts a [systemd](https://en.wikipedia.org/wiki/Systemd) service that runs the Docker container.  Using a `template_file` lets us pass Terraform variables like the AWS region and repository url from the previous step.
 
 
 #### Security
