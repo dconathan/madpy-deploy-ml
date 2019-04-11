@@ -48,3 +48,28 @@ def test_model():
     y = float(y_hat[0][1])
 
     assert 0 < y_hat[0][1] < 1
+
+
+def test_model_performance():
+    if not os.path.exists(constants.MODEL_FILE):
+        warnings.warn(f"{constants.MODEL_FILE} not found, skipping test_model_performance()")
+        return
+    if not os.path.exists(constants.TOKENIZER_PICKLE):
+        warnings.warn(
+            f"{constants.TOKENIZER_PICKLE} not found, skipping test_model_performance()"
+        )
+        return
+
+    m = model.get_model()
+    tokenizer = model.get_tokenizer()
+
+    texts, labels = model.get_data()
+
+    X = tokenizer.texts_to_sequences(texts)
+    X = tf.keras.preprocessing.sequence.pad_sequences(X, maxlen=16)
+    y = tf.keras.utils.to_categorical(labels)
+
+    accuracy = m.evaluate(X, y)[1]
+
+    assert accuracy > .9
+
