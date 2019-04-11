@@ -1,5 +1,5 @@
 import falcon
-import model
+from model import predict
 import os
 import sys
 import logging
@@ -26,7 +26,9 @@ class Predict:
         """
         post /predict
 
-        Predicts the sentiment of an input text using a model trained on movie reviews.  Return value is a score beteen 0 and 1.  Above 0.5 is considered positive sentiment.
+        Predicts the sentiment of an input text using a model trained on movie reviews.
+        Return value is a score beteen 0 and 1.
+        Above 0.5 is considered positive sentiment.
 
         Inputs:
             text (string)
@@ -54,7 +56,7 @@ class Predict:
                 f"expected a string, got a {type(text).__name__}", "text"
             )
 
-        resp.media = {"score": model.predict(text)}
+        resp.media = {"score": predict(text)}
 
 
 api.add_route("/predict", Predict())
@@ -63,5 +65,5 @@ api.add_route("/", Health())
 
 if "pytest" not in sys.modules:
     logger.info("warming up model")
-    model.predict("warm up!")
+    predict("warm up!")
     logger.info("model is ready")
