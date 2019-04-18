@@ -262,7 +262,14 @@ To create all the resources is this module, run the same `init`, `plan`, and `ap
 watch curl $(terraform output url)
 ```
 
-Hopefully in a few minutes, you see the `OK` response.
+Hopefully in a few minutes, you see the `OK` response.  Once you do, run:
+
+```
+$ curl $(terraform output url)/predict -X POST -H "content-type: application/json" -d '{"text":"hello world"}'
+```
+
+The expected output should look something like: `{"score": 0.924828290939331}`
+
 
 ## Next steps
 
