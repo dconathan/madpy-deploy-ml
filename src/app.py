@@ -59,8 +59,13 @@ class Predict:
         resp.media = {"score": predict(text)}
 
 
+def handle_error(exc, req, resp, params):
+    resp.media = {"error": f"{type(exc).__name__}: {exc}"}
+
+
 api.add_route("/predict", Predict())
 api.add_route("/", Health())
+api.add_error_handler(Exception, handle_error)
 
 
 if "pytest" not in sys.modules:
