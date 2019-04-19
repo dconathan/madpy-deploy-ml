@@ -170,7 +170,7 @@ After running, you'll see a `terraform.tfstate`, which is a JSON file with metad
 
 You should have your S3 bucket now.  If you have the [AWS CLI](https://aws.amazon.com/cli/) installed, you can look at the output of `aws s3 ls` to see if your bucket shows up.
 
-You should be able to run the `python main/src.py upload` command to upload the model we trained in the [quickstart](#quickstart).
+You should be able to run the `python src/main.py upload` command to upload the model we trained in the [quickstart](#quickstart).
 
 
 ### Container registry
@@ -262,7 +262,14 @@ To create all the resources is this module, run the same `init`, `plan`, and `ap
 watch curl $(terraform output url)
 ```
 
-Hopefully in a few minutes, you see the `OK` response.
+Hopefully in a few minutes, you see the `OK` response.  Once you do, run:
+
+```
+$ curl $(terraform output url)/predict -X POST -H "content-type: application/json" -d '{"text":"hello world"}'
+```
+
+The expected output should look something like: `{"score": 0.924828290939331}`
+
 
 ## Next steps
 
