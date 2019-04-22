@@ -52,7 +52,9 @@ def test_model():
 
 def test_model_performance():
     if not os.path.exists(constants.MODEL_FILE):
-        warnings.warn(f"{constants.MODEL_FILE} not found, skipping test_model_performance()")
+        warnings.warn(
+            f"{constants.MODEL_FILE} not found, skipping test_model_performance()"
+        )
         return
     if not os.path.exists(constants.TOKENIZER_PICKLE):
         warnings.warn(
@@ -71,5 +73,4 @@ def test_model_performance():
 
     accuracy = m.evaluate(X, y)[1]
 
-    assert accuracy > .9
-
+    assert accuracy > 0.9
