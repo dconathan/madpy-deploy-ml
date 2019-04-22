@@ -60,7 +60,7 @@ class Predict:
 
 
 def handle_error(exc, req, resp, params):
-    resp.media = {"error": f"{type(exc).__name__}: {exc}"}
+    raise falcon.HTTPInternalServerError(type(exc).__name__, str(exc))
 
 
 api.add_route("/predict", Predict())
