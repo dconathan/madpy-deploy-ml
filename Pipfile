@@ -12,7 +12,7 @@ pytest = "*"
 awscli = "*"
 
 [packages]
-tensorflow = "<2"
+tensorflow = "<3"
 h5py = "*"
 pyyaml = "*"
 gunicorn = "*"
